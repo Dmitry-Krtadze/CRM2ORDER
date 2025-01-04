@@ -1,34 +1,51 @@
 const express = require('express');
-const bodyParser = require('body-parser');
 const cors = require('cors');
 
 const app = express();
 const PORT = 3000;
 
-app.use(cors());
-app.use(bodyParser.json());
+// Массив для хранения заказов
+const orders = [];
 
-let orders = []; // Массив для хранения заказов
+// Middleware
+app.use(cors({
+    origin: '*',
+    methods: ['GET', 'POST', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type'],
+}));
+app.use(express.json()); // Для обработки JSON-тела запросов
 
-// Получение всех заказов
-app.get('/orders', (req, res) => {
-    res.json(orders);
+// Проверка работы сервера
+app.get('/', (req, res) => {
+    res.json({ message: 'Сервер работает!' });
 });
 
-// Добавление нового заказа
-app.post('/orders', (req, res) => {
+// Обработка POST запросов
+app.post('/', (req, res) => {
     const { name, telegram, comment, color, modelId } = req.body;
-    const order = {
+
+    if (!name || !telegram || !modelId) {
+        return res.status(400).json({ error: 'Все поля (name, telegram, modelId) должны быть заполнены' });
+    }
+
+    const newOrder = {
         id: orders.length + 1,
         name,
         telegram,
         comment,
         color,
         modelId,
-        status: 'В работе' // Статус по умолчанию
+        status: 'В работе',
     };
-    orders.push(order);
-    res.status(201).json(order);
+
+    orders.push(newOrder);
+    console.log('Новый заказ:', newOrder);
+    res.status(201).json({ message: 'Заказ успешно добавлен', order: newOrder });
+});
+
+// Получение всех заказов
+app.get('/orders', (req, res) => {
+    res.json(orders);
 });
 
 // Изменение статуса заказа
@@ -38,13 +55,14 @@ app.patch('/orders/:id', (req, res) => {
 
     const order = orders.find(o => o.id == id);
     if (!order) {
-        return res.status(404).json({ error: 'Order not found' });
+        return res.status(404).json({ error: 'Заказ не найден' });
     }
 
     order.status = status;
-    res.json(order);
+    res.json({ message: 'Статус заказа обновлен', order });
 });
 
+// Запуск сервера
 app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
+    console.log(`Сервер запущен на http://localhost:${PORT}`);
 });
